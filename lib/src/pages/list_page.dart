@@ -25,141 +25,16 @@ class _TodoListPageState extends State<TodoListPage> {
 
   @override
   Widget build(BuildContext context) {
-    //_tasksBloc.addTask(new TaskModel(id: 10, title: 'Hey', date: '28-07-2200', time: '13:50'));
     _tasksBloc.getTasks();
     return SafeArea(
       child: Scaffold(
-          body: CustomScrollView(
-        slivers: [
-          _addTaskHeader(),
-          StreamBuilder(
-            stream: _tasksBloc.taskStream,
-            builder: (BuildContext context, snapshot) {
-              if (!snapshot.hasData)
-                return Center(
-                  child: Text('No pending tasks'),
-                );
-              final List<TaskModel> data = snapshot.data;
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    return ListTile(
-                      title: Text(data[index].title),
-                      subtitle:
-                          Text("${data[index].date} - ${data[index].time}"),
-                    );
-                  },
-                  childCount: data.length,
-                ),
-              );
-            },
-          )
-        ],
-      )
-          /*CustomScrollView(
-          physics: BouncingScrollPhysics(),
-          slivers: <Widget>[
+        body: CustomScrollView(
+          slivers: [
             _addTaskHeader(),
             _tasksList(),
           ],
-        ),*/
-          /*StreamBuilder(
-          stream: _tasksBloc.taskStream,
-          builder:
-              (BuildContext context, AsyncSnapshot<List<TaskModel>> snapshot) {
-            if (!snapshot.hasData) return Center(child: Text("No data"));
-            List<TaskModel> data = snapshot.data;
-            return ListView.builder(
-              itemCount: data.length,
-              itemBuilder: (context, index) => ListTile(
-                title: Text(data[index].title),
-                subtitle: Text(data[index].id.toString()),
-              ),
-            );
-          },
-        ),*/
-          ),
-    );
-  }
-
-  _bar() {
-    return StreamBuilder(
-      builder: (BuildContext context, AsyncSnapshot<List<TaskModel>> snapshot) {
-        if (!snapshot.hasData)
-          return Center(
-            child: Text('No pending tasks!'),
-          );
-        return ListView.builder(
-          itemBuilder: (context, index) => ListTile(),
-        );
-      },
-      stream: _tasksBloc.taskStream,
-    );
-  }
-
-  _foo() {
-    return SliverList(
-      delegate: SliverChildListDelegate(
-        <Widget>[
-          StreamBuilder(
-            stream: _tasksBloc.taskStream,
-            builder: (BuildContext context,
-                AsyncSnapshot<List<TaskModel>> snapshot) {
-              if (!snapshot.hasData)
-                return Center(child: Text('No tasks pending!'));
-              final data = snapshot.data;
-              return SliverToBoxAdapter(
-                child: ListView.builder(
-                  itemBuilder: (BuildContext context, int index) => ListTile(
-                    title: Text(data[index].title),
-                    subtitle: Text("ID: ${data[index].id}"),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  _tasksList() {
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) => StreamBuilder(
-          stream: _tasksBloc.taskStream,
-          builder:
-              (BuildContext context, AsyncSnapshot<List<TaskModel>> snapshot) {
-            if (!snapshot.hasData)
-              return Center(
-                child: Text('No tasks pending'),
-              );
-            final List<TaskModel> data = snapshot.data;
-            print(data);
-          },
         ),
       ),
-    );
-  }
-
-  _tasks2List() {
-    StreamBuilder<List<TaskModel>>(
-      stream: _tasksBloc.taskStream,
-      builder: (BuildContext context, AsyncSnapshot<List<TaskModel>> snapshot) {
-        print(_tasksBloc.taskStream);
-        if (!snapshot.hasData || snapshot.data[0] == null)
-          return Center(
-            child: Text("Loading"),
-          );
-        return SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              return ListTile();
-            },
-            childCount: snapshot.data.length,
-          ),
-        );
-      },
     );
   }
 
@@ -241,6 +116,36 @@ class _TodoListPageState extends State<TodoListPage> {
     );
   }
 
+  StreamBuilder<List<TaskModel>> _tasksList() {
+    return StreamBuilder(
+      stream: _tasksBloc.taskStream,
+      builder: (BuildContext context, snapshot) {
+        if (!snapshot.hasData)
+          return SliverToBoxAdapter(
+            // make sure to keep this SliverToBoxAdapter, otherwise the Center widget will make the app crash and we don't want that.
+            child: Center(
+              child: Text('No pending tasks'),
+            ),
+          );
+        final List<TaskModel> data = snapshot.data;
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              return Dismissible(
+                key: UniqueKey(),
+                child: ListTile(
+                  title: Text(data[index].title),
+                  subtitle: Text("${data[index].date} ${data[index].time}"),
+                ),
+              );
+            },
+            childCount: data.length == null ? 0 : data.length,
+          ),
+        );
+      },
+    );
+  }
+
   void _datePicker(BuildContext context) async {
     DateTime currentDate = DateTime.now();
     DateTime picked = await showDatePicker(
@@ -273,6 +178,7 @@ class _TodoListPageState extends State<TodoListPage> {
   }
 
   void _submitTask() {
+    _tasksBloc.addTask(new TaskModel(title: _title, date: _date, time: _time));
     setState(() {
       _textEditingController.clear();
       _title = '';
