@@ -21,6 +21,7 @@ class MateApp extends StatelessWidget {
     final theme = Provider.of<ThemeChanger>(context);
 
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: theme.getTheme(),
       title: 'To-Do App',
       initialRoute: 'list-page',
