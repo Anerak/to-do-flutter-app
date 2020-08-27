@@ -7,3 +7,4 @@ Simple app to keep track of your tasks.
 - [x] Modify existing tasks
 - [ ] Settings view
 - [ ] Change Theme
+- [ ] i18n
