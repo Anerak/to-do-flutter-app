@@ -14,6 +14,9 @@ class _TodoListPageState extends State<TodoListPage> {
   String _date = '';
   String _time = '';
 
+  bool _editMode = false;
+  TaskModel _currentTask = new TaskModel();
+
   TextEditingController _textEditingController = new TextEditingController();
 
   final _tasksBloc = new TasksBloc();
@@ -40,6 +43,12 @@ class _TodoListPageState extends State<TodoListPage> {
 
   SliverAppBar _addTaskHeader() {
     return SliverAppBar(
+      actions: [
+        IconButton(
+          icon: Icon(Icons.delete_forever),
+          onPressed: () => _tasksBloc.deleteAllTasks(),
+        ),
+      ],
       expandedHeight: 250.0,
       pinned: true,
       floating: true,
@@ -103,9 +112,11 @@ class _TodoListPageState extends State<TodoListPage> {
               ),
               InkWell(
                 child: Icon(
-                  Icons.add_circle,
+                  _editMode ? Icons.edit : Icons.add_circle,
                   size: 40.0,
-                  color: _title.trim() != '' ? Colors.red : Colors.blue,
+                  color: _title.trim() != ''
+                      ? Theme.of(context).accentColor
+                      : Theme.of(context).disabledColor,
                 ),
                 onTap: _title.trim() != '' ? _submitTask : null,
               )
@@ -131,8 +142,37 @@ class _TodoListPageState extends State<TodoListPage> {
         return SliverList(
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
+              if (data.length == null || data.length == 0)
+                return ListTile(
+                  title: Text('No pending tasks!'),
+                );
               return Dismissible(
                 key: UniqueKey(),
+                background: Container(
+                  alignment: Alignment.centerLeft,
+                  padding: EdgeInsets.only(left: 20.0),
+                  color: Colors.lightBlue,
+                  child: Icon(
+                    Icons.edit,
+                    color: Colors.white,
+                  ),
+                ),
+                secondaryBackground: Container(
+                  alignment: Alignment.centerRight,
+                  padding: EdgeInsets.only(right: 20.0),
+                  color: Colors.red,
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.white,
+                  ),
+                ),
+                onDismissed: (direction) {
+                  if (direction == DismissDirection.startToEnd) {
+                    _editTask(data[index]);
+                  } else {
+                    _tasksBloc.deleteTask(data[index].id);
+                  }
+                },
                 child: ListTile(
                   title: Text(data[index].title),
                   subtitle: Text("${data[index].date} ${data[index].time}"),
@@ -177,9 +217,34 @@ class _TodoListPageState extends State<TodoListPage> {
     }
   }
 
-  void _submitTask() {
-    _tasksBloc.addTask(new TaskModel(title: _title, date: _date, time: _time));
+  void _editTask(TaskModel task) {
     setState(() {
+      _currentTask = task;
+      _editMode = true;
+      _textEditingController.text = _currentTask.title;
+      _title = _currentTask.title;
+      _date = _currentTask.date;
+      _time = _currentTask.time;
+    });
+  }
+
+  void _updateCurrentTask() {
+    _currentTask.title = _title;
+    _currentTask.date = _date;
+    _currentTask.time = _time;
+  }
+
+  void _submitTask() {
+    _updateCurrentTask();
+    if (_editMode) {
+      _tasksBloc.updateTask(_currentTask);
+    } else {
+      _tasksBloc
+          .addTask(new TaskModel(title: _title, date: _date, time: _time));
+    }
+    setState(() {
+      _editMode = false;
+      _currentTask = new TaskModel();
       _textEditingController.clear();
       _title = '';
       _date = '';
