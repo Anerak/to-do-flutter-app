@@ -5,6 +5,6 @@ Simple app to keep track of your tasks.
 
 - [x] Create new tasks
 - [x] Modify existing tasks
-- [ ] Settings view
-- [ ] Change Theme
-- [ ] i18n
+- [x] Change Theme
+- [ ] Filter and sort taks
+- [ ] Internationalization

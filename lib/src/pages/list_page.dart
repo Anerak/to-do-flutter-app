@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import 'package:todo_app/src/blocs/db_provider.dart';
 import 'package:todo_app/src/blocs/tasks_bloc.dart';
+import 'package:todo_app/src/widgets/menu_widget.dart';
 
 class TodoListPage extends StatefulWidget {
   final String routeName = 'list-page';
@@ -31,6 +33,7 @@ class _TodoListPageState extends State<TodoListPage> {
     _tasksBloc.getTasks();
     return SafeArea(
       child: Scaffold(
+        drawer: MenuWidget(),
         body: CustomScrollView(
           slivers: [
             _addTaskHeader(),
@@ -64,14 +67,27 @@ class _TodoListPageState extends State<TodoListPage> {
                 height: 30.0,
               ),
               TextField(
+                autocorrect: false,
                 controller: _textEditingController,
                 keyboardType: TextInputType.text,
-                maxLength: 140,
+                maxLength: 250,
                 maxLengthEnforced: true,
                 onChanged: (value) => setState(() => _title = value.trim()),
+                style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white60),
+                  ),
+                  counterStyle: TextStyle(color: Colors.white),
                   hintText: 'Task name',
-                  prefixIcon: Icon(Icons.assignment),
+                  hintStyle: TextStyle(color: Colors.white54),
+                  prefixIcon: Icon(
+                    Icons.assignment,
+                    color: Theme.of(context).accentColor,
+                  ),
                 ),
               ),
               Row(
@@ -83,11 +99,17 @@ class _TodoListPageState extends State<TodoListPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        Icon(Icons.date_range),
+                        Icon(
+                          Icons.date_range,
+                          color: Theme.of(context).accentColor,
+                        ),
                         SizedBox(
                           width: 10.0,
                         ),
-                        Text(_date),
+                        Text(
+                          _date,
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
@@ -97,11 +119,17 @@ class _TodoListPageState extends State<TodoListPage> {
                     onTap: () => _timePicker(context),
                     child: Row(
                       children: [
-                        Icon(Icons.access_time),
+                        Icon(
+                          Icons.access_time,
+                          color: Theme.of(context).accentColor,
+                        ),
                         SizedBox(
                           width: 10.0,
                         ),
-                        Text(_time),
+                        Text(
+                          _time,
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
@@ -111,15 +139,25 @@ class _TodoListPageState extends State<TodoListPage> {
                 height: 20.0,
               ),
               InkWell(
-                child: Icon(
-                  _editMode ? Icons.edit : Icons.add_circle,
-                  size: 40.0,
-                  color: _title.trim() != ''
-                      ? Theme.of(context).accentColor
-                      : Theme.of(context).disabledColor,
-                ),
-                onTap: _title.trim() != '' ? _submitTask : null,
-              )
+                  child: Icon(
+                    _editMode ? Icons.edit : Icons.add_circle,
+                    size: 40.0,
+                    color: _title.trim() != ''
+                        ? Theme.of(context).accentColor
+                        : Theme.of(context).disabledColor,
+                  ),
+                  onTap: _title.trim() == ''
+                      ? null
+                      : () {
+                          FocusScope.of(context).requestFocus(new FocusNode());
+                          _submitTask();
+                        }
+
+                  /*() {
+                  FocusScope.of(context).requestFocus(new FocusNode());
+                  _title.trim() != null ? _submitTask() : (){ null };
+                },*/
+                  )
             ],
           ),
         ),
