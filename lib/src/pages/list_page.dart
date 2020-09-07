@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'package:todo_app/src/blocs/db_provider.dart';
 import 'package:todo_app/src/blocs/tasks_bloc.dart';
@@ -15,6 +16,8 @@ class _TodoListPageState extends State<TodoListPage> {
   String _title = '';
   String _date = '';
   String _time = '';
+  int _order = 0;
+  bool _ascOrder = true;
 
   bool _editMode = false;
   TaskModel _currentTask = new TaskModel();
@@ -34,6 +37,7 @@ class _TodoListPageState extends State<TodoListPage> {
     return SafeArea(
       child: Scaffold(
         drawer: MenuWidget(),
+        floatingActionButton: _speedDial(),
         body: CustomScrollView(
           slivers: [
             _addTaskHeader(),
@@ -41,6 +45,34 @@ class _TodoListPageState extends State<TodoListPage> {
           ],
         ),
       ),
+    );
+  }
+
+  SpeedDial _speedDial() {
+    List<IconData> _icons = [
+      Icons.format_list_bulleted,
+      Icons.sort_by_alpha,
+      Icons.access_time,
+      Icons.date_range,
+    ];
+    return SpeedDial(
+      animatedIcon: AnimatedIcons.menu_close,
+      closeManually: true,
+      shape: CircleBorder(),
+      marginBottom: 20.0,
+      children: [
+        SpeedDialChild(
+          child: Icon(_ascOrder ? Icons.arrow_downward : Icons.arrow_upward),
+          onTap: () => setState(() => _ascOrder = !_ascOrder),
+        ),
+        SpeedDialChild(
+          child: Icon(_icons[_order]),
+          onTap: () => setState(() {
+            _order++;
+            if (_order >= _icons.length) _order = 0;
+          }),
+        ),
+      ],
     );
   }
 
@@ -139,25 +171,20 @@ class _TodoListPageState extends State<TodoListPage> {
                 height: 20.0,
               ),
               InkWell(
-                  child: Icon(
-                    _editMode ? Icons.edit : Icons.add_circle,
-                    size: 40.0,
-                    color: _title.trim() != ''
-                        ? Theme.of(context).accentColor
-                        : Theme.of(context).disabledColor,
-                  ),
-                  onTap: _title.trim() == ''
-                      ? null
-                      : () {
-                          FocusScope.of(context).requestFocus(new FocusNode());
-                          _submitTask();
-                        }
-
-                  /*() {
-                  FocusScope.of(context).requestFocus(new FocusNode());
-                  _title.trim() != null ? _submitTask() : (){ null };
-                },*/
-                  )
+                child: Icon(
+                  _editMode ? Icons.edit : Icons.add_circle,
+                  size: 40.0,
+                  color: _title.trim() != ''
+                      ? Theme.of(context).accentColor
+                      : Theme.of(context).disabledColor,
+                ),
+                onTap: _title.trim() == ''
+                    ? null
+                    : () {
+                        FocusScope.of(context).requestFocus(new FocusNode());
+                        _submitTask();
+                      },
+              )
             ],
           ),
         ),
@@ -169,45 +196,46 @@ class _TodoListPageState extends State<TodoListPage> {
     return StreamBuilder(
       stream: _tasksBloc.taskStream,
       builder: (BuildContext context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData || snapshot.data.length == 0)
           return SliverToBoxAdapter(
             // make sure to keep this SliverToBoxAdapter, otherwise the Center widget will make the app crash and we don't want that.
             child: Center(
-              child: Text('No pending tasks'),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 20.0,
+                  ),
+                  Text(
+                    'No pending tasks',
+                    style: TextStyle(fontSize: 20.0, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
           );
-        final List<TaskModel> data = snapshot.data;
+        final List<TaskModel> data = _orderList(snapshot.data, _order);
         return SliverList(
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              if (data.length == null || data.length == 0)
-                return ListTile(
-                  title: Text('No pending tasks!'),
-                );
               return Dismissible(
                 key: UniqueKey(),
                 background: Container(
                   alignment: Alignment.centerLeft,
                   padding: EdgeInsets.only(left: 20.0),
                   color: Colors.lightBlue,
-                  child: Icon(
-                    Icons.edit,
-                    color: Colors.white,
-                  ),
+                  child: Icon(Icons.edit, color: Colors.white),
                 ),
                 secondaryBackground: Container(
                   alignment: Alignment.centerRight,
                   padding: EdgeInsets.only(right: 20.0),
                   color: Colors.red,
-                  child: Icon(
-                    Icons.delete,
-                    color: Colors.white,
-                  ),
+                  child: Icon(Icons.delete, color: Colors.white),
                 ),
                 onDismissed: (direction) {
                   if (direction == DismissDirection.startToEnd) {
                     _editTask(data[index]);
                   } else {
+                    _undoDelete(context, data[index]);
                     _tasksBloc.deleteTask(data[index].id);
                   }
                 },
@@ -222,6 +250,41 @@ class _TodoListPageState extends State<TodoListPage> {
         );
       },
     );
+  }
+
+  void _undoDelete(BuildContext context, TaskModel oldTask) {
+    SnackBar _snackBar = SnackBar(
+      content: Text('Task deleted!'),
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () => _tasksBloc.addTask(oldTask),
+      ),
+    );
+    Scaffold.of(context).showSnackBar(_snackBar);
+  }
+
+  List<TaskModel> _orderList(List<TaskModel> inData, int orderValue) {
+    List<TaskModel> outData = inData;
+    switch (orderValue) {
+      case 0: // simple ID order
+        if (!_ascOrder) outData.sort((a, b) => b.id.compareTo(a.id));
+        break;
+      case 1: // String comparison
+        outData.sort((a, b) => _ascOrder
+            ? a.title.compareTo(b.title)
+            : b.title.compareTo(a.title));
+        break;
+      case 2: // Time comparison
+        outData.sort((a, b) =>
+            _ascOrder ? a.time.compareTo(b.time) : b.time.compareTo(a.time));
+        break;
+      case 3: // Date comparison
+        outData.sort((a, b) =>
+            _ascOrder ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
+        break;
+      default:
+    }
+    return outData;
   }
 
   void _datePicker(BuildContext context) async {

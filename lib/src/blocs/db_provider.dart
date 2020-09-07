@@ -35,7 +35,7 @@ class DBProvider {
         await db.insert(
             'Tasks',
             new TaskModel(
-                    title: 'Add a new task!', date: '28-08-2020', time: '13:55')
+                    title: 'Add a new task!', date: '01-01-2020', time: '13:55')
                 .toJson());
       },
     );

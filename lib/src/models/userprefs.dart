@@ -20,6 +20,10 @@ class UserPrefs {
         accentColor: Colors.white,
         hintColor: Colors.white,
         accentIconTheme: IconThemeData(color: Colors.purple),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: Colors.purple,
+          foregroundColor: Colors.white,
+        ),
       );
     } else {
       return ThemeData.dark();
