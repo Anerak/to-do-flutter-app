@@ -54,12 +54,15 @@ class _TodoListPageState extends State<TodoListPage> {
       Icons.sort_by_alpha,
       Icons.access_time,
       Icons.date_range,
+      Icons.done_all
     ];
     return SpeedDial(
       animatedIcon: AnimatedIcons.menu_close,
       closeManually: true,
       shape: CircleBorder(),
-      marginBottom: 20.0,
+      marginBottom: MediaQuery.of(context).orientation == Orientation.portrait
+          ? 20.0
+          : 70.0,
       children: [
         SpeedDialChild(
           child: Icon(_ascOrder ? Icons.arrow_downward : Icons.arrow_upward),
@@ -206,7 +209,7 @@ class _TodoListPageState extends State<TodoListPage> {
                     height: 20.0,
                   ),
                   Text(
-                    'No pending tasks',
+                    "No pending tasks.\nTry adding one!",
                     style: TextStyle(fontSize: 20.0, color: Colors.grey),
                   ),
                 ],
@@ -216,39 +219,54 @@ class _TodoListPageState extends State<TodoListPage> {
         final List<TaskModel> data = _orderList(snapshot.data, _order);
         return SliverList(
           delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              return Dismissible(
-                key: UniqueKey(),
-                background: Container(
-                  alignment: Alignment.centerLeft,
-                  padding: EdgeInsets.only(left: 20.0),
-                  color: Colors.lightBlue,
-                  child: Icon(Icons.edit, color: Colors.white),
-                ),
-                secondaryBackground: Container(
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.only(right: 20.0),
-                  color: Colors.red,
-                  child: Icon(Icons.delete, color: Colors.white),
-                ),
-                onDismissed: (direction) {
-                  if (direction == DismissDirection.startToEnd) {
-                    _editTask(data[index]);
-                  } else {
-                    _undoDelete(context, data[index]);
-                    _tasksBloc.deleteTask(data[index].id);
-                  }
-                },
-                child: ListTile(
-                  title: Text(data[index].title),
-                  subtitle: Text("${data[index].date} ${data[index].time}"),
-                ),
-              );
-            },
+            (BuildContext context, int index) =>
+                _listBuilder(context, data[index]),
             childCount: data.length == null ? 0 : data.length,
           ),
         );
       },
+    );
+  }
+
+  Dismissible _listBuilder(BuildContext context, TaskModel task) {
+    return Dismissible(
+      key: UniqueKey(),
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.only(left: 20.0),
+        color: Colors.lightBlue,
+        child: Icon(Icons.edit, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: EdgeInsets.only(right: 20.0),
+        color: Colors.red,
+        child: Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (direction) {
+        if (direction == DismissDirection.startToEnd) {
+          _editTask(task);
+        } else {
+          _undoDelete(context, task);
+          _tasksBloc.deleteTask(task.id);
+        }
+      },
+      child: ListTile(
+        contentPadding: EdgeInsets.symmetric(horizontal: 30.0),
+        trailing: IconButton(
+          icon: task.done == 0 ? Icon(Icons.cancel) : Icon(Icons.check_circle),
+          onPressed: () => setState(() {
+            if (task.done == 0) {
+              task.done = 1;
+            } else {
+              task.done = 0;
+            }
+            _tasksBloc.updateTask(task);
+          }),
+        ),
+        title: Text(task.title),
+        subtitle: Text("${task.date} ${task.time}"),
+      ),
     );
   }
 
@@ -281,6 +299,10 @@ class _TodoListPageState extends State<TodoListPage> {
       case 3: // Date comparison
         outData.sort((a, b) =>
             _ascOrder ? a.date.compareTo(b.date) : b.date.compareTo(a.date));
+        break;
+      case 4: // Done comparison
+        outData.sort((a, b) =>
+            _ascOrder ? a.done.compareTo(b.done) : b.done.compareTo(a.done));
         break;
       default:
     }

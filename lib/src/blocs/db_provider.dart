@@ -23,19 +23,23 @@ class DBProvider {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onOpen: (db) {},
       onCreate: (Database db, int version) async {
         await db.execute('CREATE TABLE Tasks ('
             'id INTEGER PRIMARY KEY,'
             'title TEXT,'
             'date TEXT,'
-            'time TEXT'
+            'time TEXT,'
+            'done INTEGER'
             ')');
         await db.insert(
             'Tasks',
             new TaskModel(
-                    title: 'Add a new task!', date: '01-01-2020', time: '13:55')
+                    title: 'Add a new task!',
+                    date: '01-01-2020',
+                    time: '13:55',
+                    done: 0)
                 .toJson());
       },
     );
